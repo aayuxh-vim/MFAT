@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <functional>
+#include <cmath>
 
 //=============================================================================
 // HUFFMAN NODE IMPLEMENTATION

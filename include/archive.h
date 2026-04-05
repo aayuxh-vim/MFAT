@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <ctime>
 #include <fstream>
+#include <functional>
 #include "huffman.h"
 #include "crc32.h"
 
@@ -22,6 +23,7 @@ struct FileEntry {
     //-------------------------------------------------------------------------
     
     std::string relativePath;     // Path inside archive (e.g., "docs/readme.txt")
+    std::string originalPath;     // Original path on disk (used during creation only)
     uint64_t originalSize;        // Size before compression (bytes)
     uint64_t compressedSize;      // Size after compression (bytes)
     uint64_t dataOffset;          // Where compressed data starts in archive

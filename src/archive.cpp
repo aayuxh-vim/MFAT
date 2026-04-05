@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <cstring>
 #include <sys/stat.h>
+#include <functional>
 
 #ifdef _WIN32
     #include <direct.h>
@@ -178,6 +179,7 @@ void ArchiveCreator::scanPath(const std::string& path, const std::string& baseDi
 void ArchiveCreator::scanDirectory(const std::string& dirPath, const std::string& baseDir) {
     FileEntry dirEntry;
     dirEntry.relativePath = ArchiveUtils::getRelativePath(dirPath, baseDir);
+    dirEntry.originalPath = dirPath;
     dirEntry.isDirectory = true;
     dirEntry.modificationTime = ArchiveUtils::getModificationTime(dirPath);
     fileList.push_back(dirEntry);
@@ -196,6 +198,7 @@ void ArchiveCreator::scanDirectory(const std::string& dirPath, const std::string
 void ArchiveCreator::addFile(const std::string& filePath, const std::string& baseDir) {
     FileEntry entry;
     entry.relativePath = ArchiveUtils::getRelativePath(filePath, baseDir);
+    entry.originalPath = filePath;
     entry.originalSize = ArchiveUtils::getFileSize(filePath);
     entry.modificationTime = ArchiveUtils::getModificationTime(filePath);
     entry.isDirectory = false;
@@ -210,7 +213,7 @@ void ArchiveCreator::buildCompressionTree() {
     for (auto& entry : fileList) {
         if (entry.isDirectory) continue;
         
-        std::ifstream file(entry.relativePath, std::ios::binary);
+        std::ifstream file(entry.originalPath, std::ios::binary);
         if (!file) continue;
         
         size_t sampleSize = std::min((size_t)entry.originalSize, SAMPLE_SIZE);
@@ -290,7 +293,7 @@ void ArchiveCreator::writeFileData(std::ofstream& out) {
         
         if (entry.isDirectory) continue;
         
-        std::ifstream file(entry.relativePath, std::ios::binary);
+        std::ifstream file(entry.originalPath, std::ios::binary);
         if (!file) continue;
         
         std::vector<uint8_t> fileData(entry.originalSize);
@@ -586,7 +589,14 @@ namespace ArchiveUtils {
     std::string getRelativePath(const std::string& path, const std::string& base) {
         fs::path p(path);
         fs::path b(base);
-        return fs::relative(p, b.parent_path()).string();
+        
+        // If base is a file (not a directory), use its parent directory
+        // For single files, parent_path() may be empty, so use filename
+        if (!fs::is_directory(b)) {
+            return p.filename().string();
+        }
+        
+        return fs::relative(p, b).string();
     }
     
     std::string formatBytes(uint64_t bytes) {
